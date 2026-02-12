@@ -7,6 +7,7 @@ import net.minecraft.world.level.block.state.properties.Property;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.BlockType;
 import org.bukkit.craftbukkit.block.CraftBlockType;
+import org.jspecify.annotations.NullMarked;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+@NullMarked
 public class BlockBinarySearchLayerizer {
     public static final String IDENTIFIER = "id";
 
@@ -63,66 +65,7 @@ public class BlockBinarySearchLayerizer {
             if (!list.isEmpty()) values.add(list.removeFirst());
             if (!list.isEmpty()) values.add(list.removeFirst());
 
-            final Path path = directory.resolve(".mcfunction");
-            final List<String> blockForkerLines = new ArrayList<>();
-
-            for (final BlockType blockType : values) {
-                final NamespacedKey key = blockType.getKey();
-                final Path specificBlockFunctionPath = directory.resolve(key.value() + ".mcfunction");
-                final String functionName = BlockPropertyAccessor.FUNCTION_DIRECTORY
-                    .relativize(directory.resolve(key.value()))
-                    .toString()
-                    .replaceAll("\\\\", "/");
-
-                blockForkerLines.add(String.format(
-                    "execute if block ~ ~ ~ %s run function %s:%s",
-                    key,
-                    BlockPropertyAccessor.NAMESPACE,
-                    functionName
-                ));
-
-                final List<String> finalLines = new ArrayList<>();
-                finalLines.add(String.format(
-                    "data modify storage %s: %s set value \"%s\"",
-                    BlockPropertyAccessor.NAMESPACE,
-                    IDENTIFIER,
-                    key
-                ));
-
-                final Collection<Property<?>> properties = ((CraftBlockType<?>) blockType).getHandle()
-                    .defaultBlockState().getProperties();
-
-                for (final Property<?> property : properties) {
-                    property.getAllValues().forEach(value -> {
-                        finalLines.add(String.format(
-                            "execute if block ~ ~ ~ #%s[%s=%s] run data modify storage %s: %s.%s set value %s",
-                            key,
-                            property.getName(),
-                            value,
-                            BlockPropertyAccessor.NAMESPACE,
-                            PROPERTIES,
-                            property.getName(),
-                            value
-                        ));
-                    });
-                }
-
-                try {
-                    Files.createFile(specificBlockFunctionPath);
-                    Files.write(specificBlockFunctionPath, finalLines);
-                }
-                catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            try {
-                Files.createFile(path);
-                Files.write(path, blockForkerLines, StandardOpenOption.TRUNCATE_EXISTING);
-            }
-            catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            finalBranchFunction(directory, values);
 
             return values;
         }
@@ -171,6 +114,73 @@ public class BlockBinarySearchLayerizer {
             values.addAll(values0);
             values.addAll(values1);
             return values;
+        }
+    }
+
+    private void finalBranchFunction(Path directory, List<BlockType> values) {
+        final Path path = directory.resolve(".mcfunction");
+        final List<String> lines = new ArrayList<>();
+
+        for (final BlockType blockType : values) {
+            final String functionName = BlockPropertyAccessor.FUNCTION_DIRECTORY
+                .relativize(directory.resolve(blockType.getKey().value()))
+                .toString()
+                .replaceAll("\\\\", "/");
+
+            lines.add(String.format(
+                "execute if block ~ ~ ~ %s run function %s:%s",
+                blockType.getKey(),
+                BlockPropertyAccessor.NAMESPACE,
+                functionName
+            ));
+
+            dataModifyFunction(directory, blockType);
+        }
+
+        try {
+            Files.createFile(path);
+            Files.write(path, lines, StandardOpenOption.TRUNCATE_EXISTING);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void dataModifyFunction(Path directory, BlockType blockType) {
+        final NamespacedKey key = blockType.getKey();
+        final Path specificBlockFunctionPath = directory.resolve(key.value() + ".mcfunction");
+        final List<String> finalLines = new ArrayList<>();
+        finalLines.add(String.format(
+            "data modify storage %s: %s set value \"%s\"",
+            BlockPropertyAccessor.NAMESPACE,
+            IDENTIFIER,
+            key
+        ));
+
+        final Collection<Property<?>> properties = ((CraftBlockType<?>) blockType).getHandle()
+            .defaultBlockState().getProperties();
+
+        for (final Property<?> property : properties) {
+            property.getAllValues().forEach(value -> {
+                finalLines.add(String.format(
+                    "execute if block ~ ~ ~ #%s[%s=%s] run data modify storage %s: %s.%s set value %s",
+                    key,
+                    property.getName(),
+                    value.value(),
+                    BlockPropertyAccessor.NAMESPACE,
+                    PROPERTIES,
+                    property.getName(),
+                    value
+                ));
+            });
+        }
+
+        try {
+            Files.createFile(specificBlockFunctionPath);
+            Files.write(specificBlockFunctionPath, finalLines);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

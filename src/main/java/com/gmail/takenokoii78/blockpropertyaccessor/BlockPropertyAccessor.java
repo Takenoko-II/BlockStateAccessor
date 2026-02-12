@@ -4,14 +4,18 @@ import com.gmail.subnokoii78.gpcore.files.ResourceAccess;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.block.BlockType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.NullMarked;
 
+import java.io.IOException;
 import java.nio.file.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 @NullMarked
 public final class BlockPropertyAccessor extends JavaPlugin {
@@ -28,6 +32,8 @@ public final class BlockPropertyAccessor extends JavaPlugin {
     public static final Path FUNCTION_DIRECTORY = NAMESPACE_DIRECTORY.resolve("function");
 
     public static final Path TAGS_BLOCK_DIRECTORY = NAMESPACE_DIRECTORY.resolve("tags/block");
+
+    public static final Path FINAL_OUTPUT = Path.of(ROOT_DIRECTORY + ".zip");
 
     @Override
     public void onLoad() {
@@ -46,7 +52,26 @@ public final class BlockPropertyAccessor extends JavaPlugin {
         final BlockBinarySearchLayerizer layerizer = new BlockBinarySearchLayerizer(new ArrayList<>(blockTypes));
         layerizer.layerize();
 
-        getComponentLogger().info("データパック {} が生成されました", ROOT_DIRECTORY);
+        final ZipCompressor compressor = new ZipCompressor(ROOT_DIRECTORY);
+        compressor.compress(FINAL_OUTPUT);
+        try (final Stream<Path> stream = Files.walk(ROOT_DIRECTORY).sorted(Comparator.reverseOrder())) {
+            stream.forEach(path -> {
+                try {
+                    Files.delete(path);
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        getComponentLogger().info(
+            Component.text("データパック {} が生成されました").color(NamedTextColor.GREEN),
+            FINAL_OUTPUT
+        );
     }
 
     @Override
