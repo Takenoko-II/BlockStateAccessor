@@ -5,6 +5,7 @@ import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.bukkit.Bukkit;
 import org.bukkit.block.BlockType;
 import org.bukkit.plugin.java.JavaPlugin;
