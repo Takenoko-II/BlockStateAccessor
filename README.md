@@ -5,7 +5,7 @@
 ### 1. データパックの生成 ／ Generation
 
 > [!NOTE]
-> 基本的に、既に生成済みのデータパックが [Releases](https://github.com/BlockPropertyAccessor/releases/tag/v1.0.0) にあるのでこの項は必要に応じて読み飛ばしてOK
+> 基本的に、既に生成済みのデータパックが [Releases](https://github.com/Takenoko-II/BlockPropertyAccessor/releases/tag/v1.0.0) にあるのでこの項は必要に応じて読み飛ばしてOK
 
 1. 該当のバージョンの Paper を用意する
 2. `plugins/` にプラグインの `.jar` を入れる
